@@ -706,22 +706,28 @@ async function generateAll() {
 // PPTX BUILDER  — uses only proven PptxGenJS v3 APIs
 // ============================================================
 
-// Safe borderless rectangle (line: none avoids pt:0 invalid-spec issue)
+// Borderless filled rectangle.
+// CRITICAL: line must use transparency:100 — NOT type:'none' or pt:0.
+// Both of those generate an empty <a:ln></a:ln> which is invalid OOXML
+// and causes PowerPoint to reject the file with "cannot read".
 function addRect(slide, x, y, w, h, color) {
   slide.addShape('rect', {
     x, y, w, h,
     fill: { color },
-    line: { type: 'none' }
+    line: { color, transparency: 100 }
   });
 }
 
-// Safe text wrapper — only known-good options
+// Text wrapper — MUST include line:NO_LINE so the text-box shape also
+// gets a valid (transparent) <a:ln> element instead of an empty one.
+const NO_LINE = { color: 'FFFFFF', transparency: 100 };
 function addTxt(slide, text, opts) {
   slide.addText(text || '', Object.assign({
     fontFace: 'Arial',
     color: 'FFFFFF',
     wrap: true,
-    align: 'right'
+    align: 'right',
+    line: NO_LINE
   }, opts));
 }
 
@@ -798,15 +804,14 @@ async function buildLecturePptx(lec) {
     // Thin gold line under title
     addRect(slide, 0.1, 1.25, W - 0.1, 0.05, GOLD);
 
-    // Bullets — one addText per bullet line (safest approach)
+    // Bullets — one addText per bullet line
     const bullets = sl.bullets.filter(b => b && b.trim());
-    const BULLET_CHAR = '\u25CF '; // ● prefix
     const lineH = 0.55;
     const startY = 1.45;
     const maxLines = Math.floor((H - startY - 0.25) / lineH);
 
     bullets.slice(0, maxLines).forEach((b, i) => {
-      addTxt(slide, BULLET_CHAR + b, {
+      addTxt(slide, '- ' + b, {
         x: 0.25, y: startY + i * lineH, w: W - 0.55, h: lineH,
         fontSize: 18, color: WHITE,
         align: 'right', valign: 'middle', rtlMode: true
@@ -846,9 +851,8 @@ async function buildLecturePptx(lec) {
     });
 
     // Exercise bullet lines
-    const BULLET_CHAR = '\u25CF ';
     exBullets.filter(Boolean).slice(0, 8).forEach((b, i) => {
-      addTxt(slide, BULLET_CHAR + b, {
+      addTxt(slide, '- ' + b, {
         x: 0.6, y: 2.2 + i * 0.65, w: W - 1.2, h: 0.6,
         fontSize: 17, color: WHITE,
         align: 'right', valign: 'top', rtlMode: true
@@ -880,9 +884,8 @@ async function buildLecturePptx(lec) {
 
     // 3 key points
     const keyPoints = extractKeyPoints(lec.script || '', 3);
-    const BULLET_CHAR = '\u25CF ';
     keyPoints.forEach((pt, i) => {
-      addTxt(slide, BULLET_CHAR + pt, {
+      addTxt(slide, '- ' + pt, {
         x: 0.8, y: 1.45 + i * 1.55, w: W - 1.6, h: 1.3,
         fontSize: 18, color: WHITE,
         align: 'right', valign: 'middle', rtlMode: true
