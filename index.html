@@ -703,225 +703,196 @@ async function generateAll() {
 }
 
 // ============================================================
-// PPTX BUILDER
+// PPTX BUILDER  — uses only proven PptxGenJS v3 APIs
 // ============================================================
 
-// Helper: add a borderless filled rectangle
+// Safe borderless rectangle (line: none avoids pt:0 invalid-spec issue)
 function addRect(slide, x, y, w, h, color) {
   slide.addShape('rect', {
     x, y, w, h,
     fill: { color },
-    line: { color, pt: 0 }
+    line: { type: 'none' }
   });
 }
 
-// Helper: common text options for RTL Arabic
-function rtlOpts(extra) {
-  return Object.assign({
+// Safe text wrapper — only known-good options
+function addTxt(slide, text, opts) {
+  slide.addText(text || '', Object.assign({
     fontFace: 'Arial',
-    rtlMode: true,
-    wrap: true
-  }, extra);
+    color: 'FFFFFF',
+    wrap: true,
+    align: 'right'
+  }, opts));
 }
 
 async function buildLecturePptx(lec) {
   const pptx = new PptxGenJS();
-  pptx.layout = 'LAYOUT_WIDE'; // 13.33 x 7.5 inches
+  pptx.layout = 'LAYOUT_WIDE';   // 13.33 × 7.5 inches
 
-  const NAVY      = '0F1B2D';
-  const GOLD      = 'C9A84C';
-  const WHITE     = 'FFFFFF';
-  const GRAY      = 'B0BEC5';
-  const EX_BG     = '1A3A5C';
-  const TITLE2    = '162338';
+  const NAVY  = '0F1B2D';
+  const GOLD  = 'C9A84C';
+  const WHITE = 'FFFFFF';
+  const GRAY  = 'B0BEC5';
+  const EXBG  = '1A3A5C';
 
-  const W = 13.33;
-  const H = 7.5;
+  const W = 13.33, H = 7.5;
 
-  // Truncate notes — very long notes can bloat/corrupt OOXML
-  const script = (lec.script || '').substring(0, 4000);
+  // Notes: limit size and strip control chars that break XML
+  const rawScript = (lec.script || '').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+  const script = rawScript.substring(0, 3000);
 
-  // ---- 1. TITLE SLIDE ------------------------------------------------
+  // ================================================================
+  // 1. TITLE SLIDE
+  // ================================================================
   {
     const slide = pptx.addSlide();
     slide.background = { color: NAVY };
 
-    // Gold horizontal accent line (top ~15%)
-    addRect(slide, 0, 1.0, W, 0.07, GOLD);
+    // Gold accent line
+    addRect(slide, 0, 0.9, W, 0.08, GOLD);
 
-    // Lecture title – large, centered, white
-    slide.addText(lec.title, rtlOpts({
-      x: 0.8, y: 1.5, w: W - 1.6, h: 2.5,
-      fontSize: 36,
-      bold: true,
-      color: WHITE,
-      align: 'center',
-      valign: 'middle'
-    }));
+    // Lecture title
+    addTxt(slide, lec.title, {
+      x: 0.8, y: 1.3, w: W - 1.6, h: 2.6,
+      fontSize: 36, bold: true, color: WHITE,
+      align: 'center', valign: 'middle', rtlMode: true
+    });
 
-    // "المحاضرة N" label in gold
-    slide.addText(`المحاضرة ${lec.n}`, rtlOpts({
-      x: 0.8, y: 4.3, w: W - 1.6, h: 0.65,
-      fontSize: 22,
-      color: GOLD,
-      align: 'center'
-    }));
+    // Lecture number
+    addTxt(slide, `\u0627\u0644\u0645\u062d\u0627\u0636\u0631\u0629 ${lec.n}`, {
+      x: 0.8, y: 4.2, w: W - 1.6, h: 0.65,
+      fontSize: 22, color: GOLD,
+      align: 'center', rtlMode: true
+    });
 
-    // Duration badge bottom-left (RTL so "left" visually appears on right)
-    slide.addText(`${lec.duration} دقيقة`, rtlOpts({
-      x: W - 2.6, y: H - 0.85, w: 2.3, h: 0.45,
-      fontSize: 14,
-      color: GRAY,
-      align: 'center'
-    }));
+    // Duration
+    addTxt(slide, `${lec.duration} \u062f\u0642\u064a\u0642\u0629`, {
+      x: W - 2.8, y: H - 0.9, w: 2.5, h: 0.5,
+      fontSize: 14, color: GRAY,
+      align: 'center', rtlMode: true
+    });
 
     if (script) slide.addNotes(script);
   }
 
-  // ---- 2. CONTENT SLIDES -------------------------------------------
+  // ================================================================
+  // 2. CONTENT SLIDES — one per [SLIDE:N]
+  // ================================================================
   lec.slides.forEach(sl => {
     const slide = pptx.addSlide();
     slide.background = { color: NAVY };
 
-    // Gold vertical left bar
+    // Gold left border
     addRect(slide, 0, 0, 0.1, H, GOLD);
 
-    // Slide title
-    slide.addText(sl.title, rtlOpts({
-      x: 0.25, y: 0.18, w: W - 0.45, h: 1.1,
-      fontSize: 26,
-      bold: true,
-      color: WHITE,
-      align: 'right',
-      valign: 'middle'
-    }));
+    // Slide title area background
+    addRect(slide, 0.1, 0, W - 0.1, 1.25, '162338');
 
-    // Thin gold separator under title
-    addRect(slide, 0.25, 1.35, W - 0.45, 0.04, GOLD);
+    // Slide title text
+    addTxt(slide, sl.title, {
+      x: 0.25, y: 0.1, w: W - 0.45, h: 1.05,
+      fontSize: 24, bold: true, color: WHITE,
+      align: 'right', valign: 'middle', rtlMode: true
+    });
 
-    // Bullets — using PptxGenJS native bullet text array
-    const validBullets = sl.bullets.filter(b => b && b.trim());
-    if (validBullets.length > 0) {
-      const bulletObjs = validBullets.map(b => ({
-        text: b,
-        options: {
-          fontSize: 18,
-          color: WHITE,
-          fontFace: 'Arial',
-          bullet: { color: GOLD, code: '25CF' }, // ● filled circle
-          paraSpaceAfter: 8,
-          indentLevel: 0
-        }
-      }));
+    // Thin gold line under title
+    addRect(slide, 0.1, 1.25, W - 0.1, 0.05, GOLD);
 
-      slide.addText(bulletObjs, rtlOpts({
-        x: 0.25, y: 1.55, w: W - 0.55, h: H - 1.85,
-        align: 'right',
-        valign: 'top'
-      }));
-    }
+    // Bullets — one addText per bullet line (safest approach)
+    const bullets = sl.bullets.filter(b => b && b.trim());
+    const BULLET_CHAR = '\u25CF '; // ● prefix
+    const lineH = 0.55;
+    const startY = 1.45;
+    const maxLines = Math.floor((H - startY - 0.25) / lineH);
+
+    bullets.slice(0, maxLines).forEach((b, i) => {
+      addTxt(slide, BULLET_CHAR + b, {
+        x: 0.25, y: startY + i * lineH, w: W - 0.55, h: lineH,
+        fontSize: 18, color: WHITE,
+        align: 'right', valign: 'middle', rtlMode: true
+      });
+    });
 
     if (script) slide.addNotes(script);
   });
 
-  // ---- 3. EXERCISE SLIDE -------------------------------------------
+  // ================================================================
+  // 3. EXERCISE SLIDE
+  // ================================================================
   {
     const slide = pptx.addSlide();
-    slide.background = { color: EX_BG };
+    slide.background = { color: EXBG };
 
-    // Top gold banner
+    // Gold banner
     addRect(slide, 0, 0, W, 1.3, GOLD);
 
     // Banner label
-    slide.addText('التمرين العملي', rtlOpts({
+    addTxt(slide, '\u0627\u0644\u062a\u0645\u0631\u064a\u0646 \u0627\u0644\u0639\u0645\u0644\u064a', {
       x: 0, y: 0, w: W, h: 1.3,
-      fontSize: 24,
-      bold: true,
-      color: NAVY,
-      align: 'center',
-      valign: 'middle'
-    }));
+      fontSize: 26, bold: true, color: NAVY,
+      align: 'center', valign: 'middle', rtlMode: true
+    });
 
-    const ex = lec.exerciseSlide;
-    const exTitle   = ex ? ex.title : 'التمرين العملي';
-    const exBullets = (ex && ex.bullets.length > 0) ? ex.bullets : ['راجع ملاحظات المحاضرة'];
+    const ex       = lec.exerciseSlide;
+    const exTitle  = ex ? ex.title : '\u0627\u0644\u062a\u0645\u0631\u064a\u0646 \u0627\u0644\u0639\u0645\u0644\u064a';
+    const exBullets = (ex && ex.bullets.length > 0)
+      ? ex.bullets : ['\u0631\u0627\u062c\u0639 \u0645\u0644\u0627\u062d\u0638\u0627\u062a \u0627\u0644\u0645\u062d\u0627\u0636\u0631\u0629'];
 
-    // Exercise sub-title
-    slide.addText(exTitle, rtlOpts({
-      x: 0.6, y: 1.55, w: W - 1.2, h: 0.6,
-      fontSize: 20,
-      bold: true,
-      color: GOLD,
-      align: 'right'
-    }));
+    // Exercise sub-heading
+    addTxt(slide, exTitle, {
+      x: 0.6, y: 1.45, w: W - 1.2, h: 0.65,
+      fontSize: 20, bold: true, color: GOLD,
+      align: 'right', rtlMode: true
+    });
 
-    // Exercise bullets
-    const exBulletObjs = exBullets.filter(Boolean).map(b => ({
-      text: b,
-      options: {
-        fontSize: 17,
-        color: WHITE,
-        fontFace: 'Arial',
-        bullet: { color: GOLD, code: '25CF' },
-        paraSpaceAfter: 10
-      }
-    }));
-
-    if (exBulletObjs.length > 0) {
-      slide.addText(exBulletObjs, rtlOpts({
-        x: 0.6, y: 2.3, w: W - 1.2, h: H - 2.6,
-        align: 'right',
-        valign: 'top'
-      }));
-    }
+    // Exercise bullet lines
+    const BULLET_CHAR = '\u25CF ';
+    exBullets.filter(Boolean).slice(0, 8).forEach((b, i) => {
+      addTxt(slide, BULLET_CHAR + b, {
+        x: 0.6, y: 2.2 + i * 0.65, w: W - 1.2, h: 0.6,
+        fontSize: 17, color: WHITE,
+        align: 'right', valign: 'top', rtlMode: true
+      });
+    });
 
     if (script) slide.addNotes(script);
   }
 
-  // ---- 4. SUMMARY SLIDE -------------------------------------------
+  // ================================================================
+  // 4. SUMMARY SLIDE
+  // ================================================================
   {
     const slide = pptx.addSlide();
     slide.background = { color: NAVY };
 
-    // Gold top accent bar
+    // Top gold bar
     addRect(slide, 0, 0, W, 0.1, GOLD);
 
-    // "ما تعلمناه اليوم" heading
-    slide.addText('ما تعلمناه اليوم', rtlOpts({
-      x: 0.8, y: 0.25, w: W - 1.6, h: 0.9,
-      fontSize: 28,
-      bold: true,
-      color: GOLD,
-      align: 'center',
-      valign: 'middle'
-    }));
+    // Heading
+    addTxt(slide, '\u0645\u0627 \u062a\u0639\u0644\u0645\u0646\u0627\u0647 \u0627\u0644\u064a\u0648\u0645', {
+      x: 0.8, y: 0.25, w: W - 1.6, h: 0.85,
+      fontSize: 28, bold: true, color: GOLD,
+      align: 'center', valign: 'middle', rtlMode: true
+    });
 
-    // Thin separator
-    addRect(slide, 1.0, 1.25, W - 2.0, 0.04, GOLD);
+    // Separator
+    addRect(slide, 1.0, 1.2, W - 2.0, 0.05, GOLD);
 
-    // 3 key points as native bullet list
+    // 3 key points
     const keyPoints = extractKeyPoints(lec.script || '', 3);
-    const kpBullets = keyPoints.map(p => ({
-      text: p,
-      options: {
-        fontSize: 18,
-        color: WHITE,
-        fontFace: 'Arial',
-        bullet: { color: GOLD, code: '25CF' },
-        paraSpaceAfter: 14
-      }
-    }));
-
-    slide.addText(kpBullets, rtlOpts({
-      x: 0.8, y: 1.45, w: W - 1.6, h: H - 2.0,
-      align: 'right',
-      valign: 'top'
-    }));
+    const BULLET_CHAR = '\u25CF ';
+    keyPoints.forEach((pt, i) => {
+      addTxt(slide, BULLET_CHAR + pt, {
+        x: 0.8, y: 1.45 + i * 1.55, w: W - 1.6, h: 1.3,
+        fontSize: 18, color: WHITE,
+        align: 'right', valign: 'middle', rtlMode: true
+      });
+    });
 
     if (script) slide.addNotes(script);
   }
 
-  // ---- Write to Blob (v3 API: pass type string directly) ----------
+  // pptx.write('blob') — PptxGenJS v3 takes the type string directly
   return await pptx.write('blob');
 }
 
