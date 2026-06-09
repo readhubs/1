@@ -681,8 +681,11 @@ async function generateAll() {
     const pptxBlob = await buildLecturePptx(lec);
     const safeName = `المحاضرة_${lec.n}_${lec.title.replace(/\s+/g, '_').replace(/[/\\:*?"<>|]/g, '')}`;
     const fileName = safeName + '.pptx';
-    zip.file(fileName, pptxBlob);
-    individualBlobs.push({ name: fileName, blob: pptxBlob, lec });
+    // CRITICAL: pptx is already a ZIP — must use STORE (no re-compression).
+    // DEFLATE on a pptx corrupts its internal ZIP structure → "cannot read" error.
+    zip.file(fileName, pptxBlob, { binary: true, compression: 'STORE' });
+    const pptxMime = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+    individualBlobs.push({ name: fileName, blob: new Blob([pptxBlob], { type: pptxMime }), lec });
   }
 
   // Thumbnail
@@ -690,11 +693,13 @@ async function generateAll() {
   await yieldToUI();
   const thumbBlob = await generateThumbnail(udemy, lectures.length);
   const thumbName = `thumbnail_${(udemy['العنوان_المحسّن'] || 'الكورس').replace(/\s+/g, '_')}.jpg`;
-  zip.file(thumbName, thumbBlob);
+  zip.file(thumbName, thumbBlob, { compression: 'STORE' });
 
   setProgress(96, 'جارٍ ضغط الملفات...');
   await yieldToUI();
-  zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+  // STORE is the default for all files; pptx files above already set STORE explicitly.
+  // JPEG thumbnails are already compressed — DEFLATE on them wastes CPU with no size gain.
+  zipBlob = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
 
   setProgress(100, 'اكتمل!');
   await yieldToUI();
@@ -895,8 +900,8 @@ async function buildLecturePptx(lec) {
     if (script) slide.addNotes(script);
   }
 
-  // pptx.write('blob') — PptxGenJS v3 takes the type string directly
-  return await pptx.write('blob');
+  // Use arraybuffer — more reliable than blob for JSZip binary storage
+  return await pptx.write('arraybuffer');
 }
 
 function extractKeyPoints(script, count) {
