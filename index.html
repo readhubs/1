@@ -705,239 +705,224 @@ async function generateAll() {
 // ============================================================
 // PPTX BUILDER
 // ============================================================
+
+// Helper: add a borderless filled rectangle
+function addRect(slide, x, y, w, h, color) {
+  slide.addShape('rect', {
+    x, y, w, h,
+    fill: { color },
+    line: { color, pt: 0 }
+  });
+}
+
+// Helper: common text options for RTL Arabic
+function rtlOpts(extra) {
+  return Object.assign({
+    fontFace: 'Arial',
+    rtlMode: true,
+    wrap: true
+  }, extra);
+}
+
 async function buildLecturePptx(lec) {
   const pptx = new PptxGenJS();
-  pptx.layout = 'LAYOUT_WIDE'; // 13.33 x 7.5
+  pptx.layout = 'LAYOUT_WIDE'; // 13.33 x 7.5 inches
 
-  const NAVY = '0F1B2D';
-  const GOLD = 'C9A84C';
-  const WHITE = 'FFFFFF';
-  const GRAY = 'B0BEC5';
-  const EXERCISE_BG = '1A3A5C';
-  const TITLE_BAR = '162338';
+  const NAVY      = '0F1B2D';
+  const GOLD      = 'C9A84C';
+  const WHITE     = 'FFFFFF';
+  const GRAY      = 'B0BEC5';
+  const EX_BG     = '1A3A5C';
+  const TITLE2    = '162338';
 
   const W = 13.33;
   const H = 7.5;
 
-  const script = lec.script || '';
+  // Truncate notes — very long notes can bloat/corrupt OOXML
+  const script = (lec.script || '').substring(0, 4000);
 
-  // ---- 1. TITLE SLIDE ----
+  // ---- 1. TITLE SLIDE ------------------------------------------------
   {
     const slide = pptx.addSlide();
     slide.background = { color: NAVY };
 
-    // Gold horizontal line top 15%
-    slide.addShape(pptx.ShapeType.rect, {
-      x: 0, y: H * 0.13, w: W, h: 0.06,
-      fill: { color: GOLD },
-      line: { color: GOLD }
-    });
+    // Gold horizontal accent line (top ~15%)
+    addRect(slide, 0, 1.0, W, 0.07, GOLD);
 
-    // Lecture title
-    slide.addText(lec.title, {
-      x: 0.5, y: H * 0.25, w: W - 1, h: H * 0.30,
+    // Lecture title – large, centered, white
+    slide.addText(lec.title, rtlOpts({
+      x: 0.8, y: 1.5, w: W - 1.6, h: 2.5,
       fontSize: 36,
       bold: true,
       color: WHITE,
-      fontFace: 'Arial',
       align: 'center',
-      rtlMode: true,
-      valign: 'middle',
-      wrap: true
-    });
+      valign: 'middle'
+    }));
 
-    // Lecture number
-    slide.addText(`المحاضرة ${lec.n}`, {
-      x: 0.5, y: H * 0.60, w: W - 1, h: 0.5,
-      fontSize: 20,
+    // "المحاضرة N" label in gold
+    slide.addText(`المحاضرة ${lec.n}`, rtlOpts({
+      x: 0.8, y: 4.3, w: W - 1.6, h: 0.65,
+      fontSize: 22,
       color: GOLD,
-      fontFace: 'Arial',
-      align: 'center',
-      rtlMode: true
-    });
+      align: 'center'
+    }));
 
-    // Duration bottom right
-    slide.addText(`${lec.duration} دقيقة`, {
-      x: W - 2.5, y: H - 0.8, w: 2.2, h: 0.4,
+    // Duration badge bottom-left (RTL so "left" visually appears on right)
+    slide.addText(`${lec.duration} دقيقة`, rtlOpts({
+      x: W - 2.6, y: H - 0.85, w: 2.3, h: 0.45,
       fontSize: 14,
       color: GRAY,
-      fontFace: 'Arial',
-      align: 'left',
-      rtlMode: true
-    });
+      align: 'center'
+    }));
 
     if (script) slide.addNotes(script);
   }
 
-  // ---- 2. CONTENT SLIDES ----
+  // ---- 2. CONTENT SLIDES -------------------------------------------
   lec.slides.forEach(sl => {
     const slide = pptx.addSlide();
     slide.background = { color: NAVY };
 
-    // Gold left border bar
-    slide.addShape(pptx.ShapeType.rect, {
-      x: 0, y: 0, w: 0.08, h: H,
-      fill: { color: GOLD },
-      line: { color: GOLD }
-    });
+    // Gold vertical left bar
+    addRect(slide, 0, 0, 0.1, H, GOLD);
 
-    // Title area (top 20%)
-    slide.addText(sl.title, {
-      x: 0.3, y: 0.2, w: W - 0.5, h: H * 0.20,
-      fontSize: 24,
+    // Slide title
+    slide.addText(sl.title, rtlOpts({
+      x: 0.25, y: 0.18, w: W - 0.45, h: 1.1,
+      fontSize: 26,
       bold: true,
       color: WHITE,
-      fontFace: 'Arial',
       align: 'right',
-      rtlMode: true,
-      valign: 'middle',
-      wrap: true
-    });
+      valign: 'middle'
+    }));
 
-    // Thin gold separator line under title
-    slide.addShape(pptx.ShapeType.rect, {
-      x: 0.3, y: H * 0.22, w: W - 0.5, h: 0.03,
-      fill: { color: GOLD },
-      line: { color: GOLD }
-    });
+    // Thin gold separator under title
+    addRect(slide, 0.25, 1.35, W - 0.45, 0.04, GOLD);
 
-    // Bullets
-    const bulletStartY = H * 0.26;
-    const bulletH = 0.45;
-    const bulletSpacing = 0.3;
+    // Bullets — using PptxGenJS native bullet text array
+    const validBullets = sl.bullets.filter(b => b && b.trim());
+    if (validBullets.length > 0) {
+      const bulletObjs = validBullets.map(b => ({
+        text: b,
+        options: {
+          fontSize: 18,
+          color: WHITE,
+          fontFace: 'Arial',
+          bullet: { color: GOLD, code: '25CF' }, // ● filled circle
+          paraSpaceAfter: 8,
+          indentLevel: 0
+        }
+      }));
 
-    sl.bullets.forEach((bullet, idx) => {
-      const y = bulletStartY + idx * (bulletH + bulletSpacing);
-      if (y + bulletH > H - 0.2) return; // overflow guard
-
-      // Gold circle bullet marker
-      slide.addShape(pptx.ShapeType.ellipse, {
-        x: W - 0.55, y: y + bulletH / 2 - 0.07, w: 0.14, h: 0.14,
-        fill: { color: GOLD },
-        line: { color: GOLD }
-      });
-
-      // Bullet text
-      slide.addText(bullet, {
-        x: 0.5, y, w: W - 0.9, h: bulletH,
-        fontSize: 18,
-        color: WHITE,
-        fontFace: 'Arial',
+      slide.addText(bulletObjs, rtlOpts({
+        x: 0.25, y: 1.55, w: W - 0.55, h: H - 1.85,
         align: 'right',
-        rtlMode: true,
-        valign: 'middle',
-        wrap: true
-      });
-    });
+        valign: 'top'
+      }));
+    }
 
     if (script) slide.addNotes(script);
   });
 
-  // ---- 3. EXERCISE SLIDE ----
+  // ---- 3. EXERCISE SLIDE -------------------------------------------
   {
     const slide = pptx.addSlide();
-    slide.background = { color: EXERCISE_BG };
+    slide.background = { color: EX_BG };
 
     // Top gold banner
-    slide.addShape(pptx.ShapeType.rect, {
-      x: 0, y: 0, w: W, h: 1.2,
-      fill: { color: GOLD },
-      line: { color: GOLD }
-    });
+    addRect(slide, 0, 0, W, 1.3, GOLD);
 
-    // Banner text
-    slide.addText('التمرين العملي', {
-      x: 0, y: 0, w: W, h: 1.2,
-      fontSize: 22,
+    // Banner label
+    slide.addText('التمرين العملي', rtlOpts({
+      x: 0, y: 0, w: W, h: 1.3,
+      fontSize: 24,
       bold: true,
       color: NAVY,
-      fontFace: 'Arial',
       align: 'center',
-      rtlMode: true,
       valign: 'middle'
-    });
+    }));
 
     const ex = lec.exerciseSlide;
-    const exTitle = ex ? ex.title : 'التمرين العملي';
-    const exBullets = ex && ex.bullets.length > 0 ? ex.bullets : ['راجع ملاحظات المحاضرة'];
+    const exTitle   = ex ? ex.title : 'التمرين العملي';
+    const exBullets = (ex && ex.bullets.length > 0) ? ex.bullets : ['راجع ملاحظات المحاضرة'];
 
-    // Exercise title
-    slide.addText(exTitle, {
-      x: 0.5, y: 1.4, w: W - 1, h: 0.5,
-      fontSize: 18,
+    // Exercise sub-title
+    slide.addText(exTitle, rtlOpts({
+      x: 0.6, y: 1.55, w: W - 1.2, h: 0.6,
+      fontSize: 20,
       bold: true,
       color: GOLD,
-      fontFace: 'Arial',
-      align: 'right',
-      rtlMode: true
-    });
+      align: 'right'
+    }));
 
     // Exercise bullets
-    exBullets.forEach((b, idx) => {
-      slide.addText(b, {
-        x: 0.5, y: 2.0 + idx * 0.7, w: W - 1, h: 0.6,
+    const exBulletObjs = exBullets.filter(Boolean).map(b => ({
+      text: b,
+      options: {
         fontSize: 17,
         color: WHITE,
         fontFace: 'Arial',
+        bullet: { color: GOLD, code: '25CF' },
+        paraSpaceAfter: 10
+      }
+    }));
+
+    if (exBulletObjs.length > 0) {
+      slide.addText(exBulletObjs, rtlOpts({
+        x: 0.6, y: 2.3, w: W - 1.2, h: H - 2.6,
         align: 'right',
-        rtlMode: true,
-        valign: 'top',
-        wrap: true
-      });
-    });
+        valign: 'top'
+      }));
+    }
 
     if (script) slide.addNotes(script);
   }
 
-  // ---- 4. SUMMARY SLIDE ----
+  // ---- 4. SUMMARY SLIDE -------------------------------------------
   {
     const slide = pptx.addSlide();
     slide.background = { color: NAVY };
 
-    // Gold accent line at top
-    slide.addShape(pptx.ShapeType.rect, {
-      x: 0, y: 0, w: W, h: 0.08,
-      fill: { color: GOLD },
-      line: { color: GOLD }
-    });
+    // Gold top accent bar
+    addRect(slide, 0, 0, W, 0.1, GOLD);
 
-    // Summary title
-    slide.addText('ما تعلمناه اليوم', {
-      x: 0.5, y: 0.3, w: W - 1, h: 0.7,
-      fontSize: 26,
+    // "ما تعلمناه اليوم" heading
+    slide.addText('ما تعلمناه اليوم', rtlOpts({
+      x: 0.8, y: 0.25, w: W - 1.6, h: 0.9,
+      fontSize: 28,
       bold: true,
       color: GOLD,
-      fontFace: 'Arial',
       align: 'center',
-      rtlMode: true
-    });
+      valign: 'middle'
+    }));
 
-    // Auto-extract 3 key points from script
-    const keyPoints = extractKeyPoints(script, 3);
-    keyPoints.forEach((point, idx) => {
-      // Gold bullet circle
-      slide.addShape(pptx.ShapeType.ellipse, {
-        x: W - 0.55, y: 1.3 + idx * 1.5 + 0.15, w: 0.14, h: 0.14,
-        fill: { color: GOLD },
-        line: { color: GOLD }
-      });
-      slide.addText(point, {
-        x: 0.5, y: 1.3 + idx * 1.5, w: W - 0.9, h: 1.2,
-        fontSize: 16,
+    // Thin separator
+    addRect(slide, 1.0, 1.25, W - 2.0, 0.04, GOLD);
+
+    // 3 key points as native bullet list
+    const keyPoints = extractKeyPoints(lec.script || '', 3);
+    const kpBullets = keyPoints.map(p => ({
+      text: p,
+      options: {
+        fontSize: 18,
         color: WHITE,
         fontFace: 'Arial',
-        align: 'right',
-        rtlMode: true,
-        valign: 'middle',
-        wrap: true
-      });
-    });
+        bullet: { color: GOLD, code: '25CF' },
+        paraSpaceAfter: 14
+      }
+    }));
+
+    slide.addText(kpBullets, rtlOpts({
+      x: 0.8, y: 1.45, w: W - 1.6, h: H - 2.0,
+      align: 'right',
+      valign: 'top'
+    }));
 
     if (script) slide.addNotes(script);
   }
 
-  // Write to blob
-  return await pptx.write({ outputType: 'blob' });
+  // ---- Write to Blob (v3 API: pass type string directly) ----------
+  return await pptx.write('blob');
 }
 
 function extractKeyPoints(script, count) {
