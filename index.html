@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0F1B2D">
+<meta name="description" content="محول النص إلى PowerPoint احترافي">
+<title>مصنع الكورسات</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy: #0F1B2D;
+    --navy2: #162338;
+    --navy3: #1A2E4A;
+    --gold: #C9A84C;
+    --white: #FFFFFF;
+    --gray: #B0BEC5;
+    --red: #E74C3C;
+    --success: #27AE60;
+  }
+  body {
+    font-family: Arial, sans-serif;
+    background: var(--navy);
+    color: var(--white);
+    min-height: 100vh;
+    direction: rtl;
+  }
+
+  /* ===== HEADER ===== */
+  header {
+    background: var(--navy2);
+    border-bottom: 2px solid var(--gold);
+    padding: 20px 32px;
+    text-align: center;
+  }
+  header h1 {
+    font-size: 2rem;
+    color: var(--gold);
+    font-weight: bold;
+    letter-spacing: 1px;
+  }
+  header p {
+    font-size: 0.9rem;
+    color: var(--gray);
+    margin-top: 4px;
+  }
+
+  /* ===== MAIN CONTAINER ===== */
+  main {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 32px 16px;
+  }
+
+  /* ===== ERROR BANNER ===== */
+  #errorBanner {
+    display: none;
+    background: var(--red);
+    color: var(--white);
+    padding: 14px 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 0.95rem;
+    animation: fadeIn 0.3s ease;
+  }
+  #errorBanner.show { display: block; }
+
+  /* ===== UPLOAD ZONE ===== */
+  #uploadZone {
+    border: 2px dashed var(--gold);
+    border-radius: 16px;
+    padding: 60px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+    background: rgba(201,168,76,0.04);
+    position: relative;
+  }
+  #uploadZone:hover, #uploadZone.dragover {
+    background: rgba(201,168,76,0.10);
+    border-color: #e8c46a;
+  }
+  #uploadZone svg {
+    width: 64px;
+    height: 64px;
+    color: var(--gold);
+    margin-bottom: 16px;
+  }
+  #uploadZone h2 {
+    font-size: 1.4rem;
+    color: var(--white);
+    margin-bottom: 8px;
+  }
+  #uploadZone p {
+    color: var(--gray);
+    font-size: 0.9rem;
+  }
+  #fileInput { display: none; }
+
+  /* ===== PREVIEW PANEL ===== */
+  #previewPanel {
+    display: none;
+    margin-top: 32px;
+    animation: fadeIn 0.4s ease;
+  }
+  #previewPanel h2 {
+    font-size: 1.3rem;
+    color: var(--gold);
+    margin-bottom: 6px;
+  }
+  #courseTitle {
+    font-size: 1rem;
+    color: var(--gray);
+    margin-bottom: 4px;
+  }
+  #lectureCount {
+    font-size: 0.85rem;
+    color: var(--gray);
+    margin-bottom: 20px;
+    opacity: 0.8;
+  }
+  #lectureGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 14px;
+    max-height: 400px;
+    overflow-y: auto;
+    padding-left: 4px;
+  }
+  .lectureCard {
+    background: var(--navy2);
+    border: 1px solid rgba(201,168,76,0.2);
+    border-radius: 10px;
+    padding: 14px;
+    transition: border-color 0.2s, transform 0.15s;
+  }
+  .lectureCard:hover {
+    border-color: var(--gold);
+    transform: translateY(-2px);
+  }
+  .lectureNum {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: var(--gold);
+    margin-bottom: 6px;
+  }
+  .lectureTitle {
+    font-size: 0.85rem;
+    color: var(--white);
+    margin-bottom: 8px;
+    line-height: 1.4;
+    min-height: 38px;
+  }
+  .badgeRow {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .badge {
+    background: rgba(201,168,76,0.15);
+    color: var(--gold);
+    border-radius: 20px;
+    padding: 2px 10px;
+    font-size: 0.75rem;
+  }
+
+  /* ===== ACTION BUTTONS ===== */
+  #actionArea {
+    display: none;
+    margin-top: 28px;
+    text-align: center;
+    animation: fadeIn 0.4s ease;
+  }
+  .btnPrimary {
+    background: var(--gold);
+    color: var(--navy);
+    border: none;
+    padding: 14px 32px;
+    border-radius: 10px;
+    font-size: 1.05rem;
+    font-weight: bold;
+    cursor: pointer;
+    font-family: Arial, sans-serif;
+    transition: background 0.2s, transform 0.1s;
+  }
+  .btnPrimary:hover { background: #e0bb5f; transform: translateY(-1px); }
+  .btnPrimary:active { transform: translateY(0); }
+  .btnPrimary:disabled { background: #6b5c2e; cursor: not-allowed; transform: none; }
+  .btnSecondary {
+    background: transparent;
+    color: var(--gold);
+    border: 1px solid var(--gold);
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-family: Arial, sans-serif;
+    transition: background 0.2s;
+  }
+  .btnSecondary:hover { background: rgba(201,168,76,0.1); }
+
+  /* ===== PROGRESS ===== */
+  #progressArea {
+    display: none;
+    margin-top: 24px;
+    animation: fadeIn 0.3s ease;
+  }
+  #progressLabel {
+    color: var(--gray);
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+    text-align: center;
+  }
+  #progressBar {
+    width: 100%;
+    height: 10px;
+    background: var(--navy2);
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid rgba(201,168,76,0.2);
+  }
+  #progressFill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--gold), #e8c46a);
+    border-radius: 10px;
+    transition: width 0.3s ease;
+  }
+
+  /* ===== DOWNLOAD SECTION ===== */
+  #downloadSection {
+    display: none;
+    margin-top: 32px;
+    animation: fadeIn 0.4s ease;
+  }
+  #downloadSection h3 {
+    font-size: 1.1rem;
+    color: var(--gold);
+    margin-bottom: 16px;
+  }
+  #individualList {
+    margin-top: 20px;
+    max-height: 400px;
+    overflow-y: auto;
+  }
+  .dlRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: var(--navy2);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    border: 1px solid rgba(201,168,76,0.1);
+    gap: 10px;
+  }
+  .dlInfo {
+    flex: 1;
+  }
+  .dlTitle {
+    font-size: 0.9rem;
+    color: var(--white);
+  }
+  .dlMeta {
+    font-size: 0.75rem;
+    color: var(--gray);
+    margin-top: 2px;
+  }
+
+  /* ===== THUMBNAIL PREVIEW ===== */
+  #thumbnailSection {
+    display: none;
+    margin-top: 28px;
+    text-align: center;
+    animation: fadeIn 0.4s ease;
+  }
+  #thumbnailSection p {
+    color: var(--gray);
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+  }
+  #thumbnailPreview {
+    max-width: 100%;
+    width: 375px;
+    height: auto;
+    border-radius: 8px;
+    border: 2px solid var(--gold);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  }
+
+  /* ===== WARNINGS ===== */
+  #warnings {
+    display: none;
+    margin-top: 16px;
+  }
+  .warnItem {
+    background: rgba(243,156,18,0.12);
+    border: 1px solid rgba(243,156,18,0.4);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 0.85rem;
+    color: #F39C12;
+    margin-bottom: 6px;
+  }
+
+  /* ===== RESET LINK ===== */
+  #resetBtn {
+    display: none;
+    margin-top: 24px;
+    text-align: center;
+  }
+  #resetBtn button {
+    background: none;
+    border: none;
+    color: var(--gray);
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-family: Arial, sans-serif;
+    text-decoration: underline;
+  }
+  #resetBtn button:hover { color: var(--white); }
+
+  /* ===== FOOTER ===== */
+  footer {
+    text-align: center;
+    padding: 32px 16px;
+    color: rgba(176,190,197,0.4);
+    font-size: 0.8rem;
+  }
+
+  /* ===== ANIMATIONS ===== */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
+  .pulsing { animation: pulse 1.5s infinite; }
+
+  /* ===== SCROLLBAR ===== */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--navy); }
+  ::-webkit-scrollbar-thumb { background: rgba(201,168,76,0.3); border-radius: 4px; }
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 600px) {
+    header h1 { font-size: 1.4rem; }
+    #uploadZone { padding: 40px 16px; }
+    #lectureGrid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+    .dlRow { flex-direction: column; align-items: flex-start; }
+  }
+
+  /* Reset file area */
+  .changeFile {
+    background: none;
+    border: none;
+    color: var(--gold);
+    font-size: 0.8rem;
+    cursor: pointer;
+    font-family: Arial, sans-serif;
+    text-decoration: underline;
+    margin-top: 10px;
+    display: block;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🏭 مصنع الكورسات</h1>
+  <p>محول النص إلى PowerPoint احترافي</p>
+</header>
+
+<main>
+  <div id="errorBanner"></div>
+
+  <!-- Upload Zone -->
+  <div id="uploadZone">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path stroke-linecap="round" stroke-linejoin="round"
+        d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
+    </svg>
+    <h2>ارفع ملف الكورس هنا</h2>
+    <p>يدعم ملفات .txt فقط</p>
+    <p style="margin-top:8px;color:rgba(176,190,197,0.6);font-size:0.8rem">اسحب وأفلت أو انقر للاختيار</p>
+    <input type="file" id="fileInput" accept=".txt">
+  </div>
+
+  <!-- Preview Panel -->
+  <div id="previewPanel">
+    <h2>📋 معاينة الكورس</h2>
+    <p id="courseTitle"></p>
+    <p id="lectureCount"></p>
+    <div id="lectureGrid"></div>
+    <div id="warnings"></div>
+    <button class="changeFile" onclick="resetAll()">تغيير الملف</button>
+  </div>
+
+  <!-- Action Buttons -->
+  <div id="actionArea">
+    <button class="btnPrimary" id="generateBtn" onclick="startGeneration()">⚡ توليد وتحميل جميع المحاضرات (ZIP)</button>
+  </div>
+
+  <!-- Progress -->
+  <div id="progressArea">
+    <p id="progressLabel" class="pulsing">جارٍ المعالجة...</p>
+    <div id="progressBar"><div id="progressFill"></div></div>
+  </div>
+
+  <!-- Download Section -->
+  <div id="downloadSection">
+    <h3>✅ اكتملت المعالجة!</h3>
+    <button class="btnPrimary" id="zipDownloadBtn">⬇️ تحميل جميع المحاضرات (ZIP)</button>
+    <div id="individualList"></div>
+  </div>
+
+  <!-- Thumbnail -->
+  <div id="thumbnailSection">
+    <p>معاينة الصورة التعريفية</p>
+    <img id="thumbnailPreview" alt="thumbnail preview">
+  </div>
+
+  <!-- Reset -->
+  <div id="resetBtn">
+    <button onclick="resetAll()">⟳ رفع ملف جديد</button>
+  </div>
+</main>
+
+<footer>
+  مصنع الكورسات &bull; يعمل بالكامل في المتصفح &bull; لا يتم رفع أي بيانات
+</footer>
+
+<!-- Canvas for thumbnail (hidden) -->
+<canvas id="thumbCanvas" width="750" height="422" style="display:none"></canvas>
+
+<!-- CDN Libraries -->
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+
+<script>
+"use strict";
+
+// ============================================================
+// GLOBALS
+// ============================================================
+let parsedData = null;
+let zipBlob = null;
+let individualBlobs = [];
+
+// ============================================================
+// UPLOAD / DRAG-DROP
+// ============================================================
+const uploadZone = document.getElementById('uploadZone');
+const fileInput = document.getElementById('fileInput');
+
+uploadZone.addEventListener('click', () => fileInput.click());
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) handleFile(file);
+});
+fileInput.addEventListener('change', () => {
+  if (fileInput.files[0]) handleFile(fileInput.files[0]);
+});
+
+function handleFile(file) {
+  hideError();
+  if (!file.name.toLowerCase().endsWith('.txt')) {
+    showError('يدعم فقط ملفات .txt');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = e => {
+    const text = e.target.result;
+    try {
+      parsedData = parseFile(text);
+      if (!parsedData || parsedData.lectures.length === 0) {
+        showError('لم يتم العثور على محاضرات. تحقق من الملف');
+        return;
+      }
+      renderPreview();
+    } catch (err) {
+      console.error(err);
+      showError('تنسيق الملف غير صحيح. تأكد من استخدام البرومبت الصحيح');
+    }
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+// ============================================================
+// PARSER
+// ============================================================
+function parseFile(text) {
+  const data = {
+    udemy: {},
+    outline: [],
+    lectures: [],
+    quizzes: []
+  };
+
+  // --- UDEMY DATA ---
+  const udeyMatch = text.match(/\[SECTION:UDEMY_DATA\]([\s\S]*?)\[\/SECTION:UDEMY_DATA\]/);
+  if (udeyMatch) {
+    const udBlock = udeyMatch[1];
+    const simpleFields = ['العنوان_المحسّن', 'الوصف', 'الكلمات_المفتاحية', 'الجمهور', 'المتطلبات'];
+    simpleFields.forEach(f => {
+      const m = udBlock.match(new RegExp(f + ':\\s*(.+)'));
+      if (m) data.udemy[f] = m[1].trim();
+    });
+    // Learning outcomes
+    const outM = udBlock.match(/مخرجات_التعلم:\s*([\s\S]+)/);
+    if (outM) {
+      data.udemy.outcomes = outM[1].split('\n').map(l => l.trim()).filter(l => l && l !== '[/SECTION:UDEMY_DATA]');
+    }
+    // Keywords array
+    if (data.udemy['الكلمات_المفتاحية']) {
+      data.udemy.keywordsArr = data.udemy['الكلمات_المفتاحية'].split(/[,،]/).map(k => k.trim()).filter(Boolean);
+    }
+  }
+
+  // --- LECTURES ---
+  const lecturePattern = /\[LECTURE:(\d+)\]\[TITLE:([^\]]*)\]\[DURATION:(\d+)\]\[PART:(\d+)\]([\s\S]*?)\[\/LECTURE:\1\]/g;
+  let lm;
+  while ((lm = lecturePattern.exec(text)) !== null) {
+    const n = parseInt(lm[1]);
+    const title = lm[2].trim();
+    const duration = parseInt(lm[3]);
+    const part = parseInt(lm[4]);
+    const body = lm[5];
+
+    // Script
+    let script = '';
+    const scriptM = body.match(/\[SCRIPT:START\]([\s\S]*?)\[SCRIPT:END\]/);
+    if (scriptM) script = scriptM[1].trim();
+
+    // Slides block
+    const slides = [];
+    const slidesM = body.match(/\[SLIDES:START\]([\s\S]*?)\[SLIDES:END\]/);
+    if (slidesM) {
+      const slidesBlock = slidesM[1];
+      // Regular slides
+      const slidePattern = /\[SLIDE:(\d+)\]([\s\S]*?)\[\/SLIDE:\1\]/g;
+      let sm;
+      while ((sm = slidePattern.exec(slidesBlock)) !== null) {
+        const slideNum = parseInt(sm[1]);
+        const slideBody = sm[2];
+        const titleM = slideBody.match(/\[SLIDE_TITLE:([^\]]*)\]/);
+        const slideTitle = titleM ? titleM[1].trim() : '';
+        const bullets = [];
+        const bPattern = /\[BULLET\]([\s\S]*?)\[\/BULLET\]/g;
+        let bm;
+        while ((bm = bPattern.exec(slideBody)) !== null) {
+          const bt = bm[1].trim();
+          if (bt) bullets.push(bt);
+        }
+        slides.push({ num: slideNum, title: truncateTitle(slideTitle), bullets, type: 'content' });
+      }
+
+      // Exercise slide
+      let exerciseSlide = null;
+      const exM = slidesBlock.match(/\[EXERCISE_SLIDE\]([\s\S]*?)\[\/EXERCISE_SLIDE\]/);
+      if (exM) {
+        const exBody = exM[1];
+        const exTitleM = exBody.match(/\[SLIDE_TITLE:([^\]]*)\]/);
+        const exTitle = exTitleM ? exTitleM[1].trim() : 'التمرين العملي';
+        const exBullets = [];
+        const ebP = /\[BULLET\]([\s\S]*?)\[\/BULLET\]/g;
+        let ebm;
+        while ((ebm = ebP.exec(exBody)) !== null) {
+          const bt = ebm[1].trim();
+          if (bt) exBullets.push(bt);
+        }
+        exerciseSlide = { title: exTitle, bullets: exBullets };
+      }
+
+      data.lectures.push({ n, title, duration, part, script, slides, exerciseSlide });
+    } else {
+      data.lectures.push({ n, title, duration, part, script, slides: [], exerciseSlide: null });
+    }
+  }
+
+  // Sort lectures by number
+  data.lectures.sort((a, b) => a.n - b.n);
+
+  return data;
+}
+
+function truncateTitle(t) {
+  if (!t) return '';
+  return t.length > 60 ? t.substring(0, 57) + '...' : t;
+}
+
+// ============================================================
+// PREVIEW RENDER
+// ============================================================
+function renderPreview() {
+  const { udemy, lectures } = parsedData;
+  document.getElementById('courseTitle').textContent = udemy['العنوان_المحسّن'] || 'بدون عنوان';
+  document.getElementById('lectureCount').textContent = `تم اكتشاف ${lectures.length} محاضرة`;
+
+  const grid = document.getElementById('lectureGrid');
+  grid.innerHTML = '';
+  lectures.forEach(lec => {
+    const card = document.createElement('div');
+    card.className = 'lectureCard';
+    card.innerHTML = `
+      <div class="lectureNum">المحاضرة ${lec.n}</div>
+      <div class="lectureTitle">${escHtml(lec.title)}</div>
+      <div class="badgeRow">
+        <span class="badge">${lec.duration} د</span>
+        <span class="badge">الجزء ${lec.part}</span>
+        <span class="badge">${lec.slides.length} شرائح</span>
+      </div>`;
+    grid.appendChild(card);
+  });
+
+  // Warnings
+  const warningsList = [];
+  if (lectures.length !== 24) {
+    warningsList.push(`عدد المحاضرات ${lectures.length} (المتوقع 24)`);
+  }
+  lectures.forEach(lec => {
+    if (lec.slides.length === 0) warningsList.push(`المحاضرة ${lec.n} لا تحتوي على شرائح`);
+  });
+
+  const warnDiv = document.getElementById('warnings');
+  if (warningsList.length > 0) {
+    warnDiv.innerHTML = warningsList.map(w => `<div class="warnItem">⚠️ ${escHtml(w)}</div>`).join('');
+    warnDiv.style.display = 'block';
+  }
+
+  show('previewPanel');
+  show('actionArea');
+  uploadZone.style.display = 'none';
+}
+
+// ============================================================
+// GENERATION
+// ============================================================
+async function startGeneration() {
+  document.getElementById('generateBtn').disabled = true;
+  hide('actionArea');
+  show('progressArea');
+  hideError();
+
+  try {
+    await generateAll();
+  } catch (err) {
+    console.error(err);
+    showError('حدث خطأ أثناء المعالجة: ' + err.message);
+    show('actionArea');
+    document.getElementById('generateBtn').disabled = false;
+  }
+
+  hide('progressArea');
+}
+
+async function generateAll() {
+  const { udemy, lectures } = parsedData;
+  const zip = new JSZip();
+  individualBlobs = [];
+  const total = lectures.length;
+
+  setProgress(0, `جارٍ المعالجة... 0 من ${total}`);
+
+  for (let i = 0; i < lectures.length; i++) {
+    const lec = lectures[i];
+    setProgress(Math.round((i / total) * 90), `جارٍ المعالجة... المحاضرة ${lec.n} من ${total}`);
+    await yieldToUI();
+
+    const pptxBlob = await buildLecturePptx(lec);
+    const safeName = `المحاضرة_${lec.n}_${lec.title.replace(/\s+/g, '_').replace(/[/\\:*?"<>|]/g, '')}`;
+    const fileName = safeName + '.pptx';
+    zip.file(fileName, pptxBlob);
+    individualBlobs.push({ name: fileName, blob: pptxBlob, lec });
+  }
+
+  // Thumbnail
+  setProgress(92, 'جارٍ إنشاء الصورة التعريفية...');
+  await yieldToUI();
+  const thumbBlob = await generateThumbnail(udemy, lectures.length);
+  const thumbName = `thumbnail_${(udemy['العنوان_المحسّن'] || 'الكورس').replace(/\s+/g, '_')}.jpg`;
+  zip.file(thumbName, thumbBlob);
+
+  setProgress(96, 'جارٍ ضغط الملفات...');
+  await yieldToUI();
+  zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+
+  setProgress(100, 'اكتمل!');
+  await yieldToUI();
+
+  renderDownloadSection(thumbBlob, thumbName);
+}
+
+// ============================================================
+// PPTX BUILDER
+// ============================================================
+async function buildLecturePptx(lec) {
+  const pptx = new PptxGenJS();
+  pptx.layout = 'LAYOUT_WIDE'; // 13.33 x 7.5
+
+  const NAVY = '0F1B2D';
+  const GOLD = 'C9A84C';
+  const WHITE = 'FFFFFF';
+  const GRAY = 'B0BEC5';
+  const EXERCISE_BG = '1A3A5C';
+  const TITLE_BAR = '162338';
+
+  const W = 13.33;
+  const H = 7.5;
+
+  const script = lec.script || '';
+
+  // ---- 1. TITLE SLIDE ----
+  {
+    const slide = pptx.addSlide();
+    slide.background = { color: NAVY };
+
+    // Gold horizontal line top 15%
+    slide.addShape(pptx.ShapeType.rect, {
+      x: 0, y: H * 0.13, w: W, h: 0.06,
+      fill: { color: GOLD },
+      line: { color: GOLD }
+    });
+
+    // Lecture title
+    slide.addText(lec.title, {
+      x: 0.5, y: H * 0.25, w: W - 1, h: H * 0.30,
+      fontSize: 36,
+      bold: true,
+      color: WHITE,
+      fontFace: 'Arial',
+      align: 'center',
+      rtlMode: true,
+      valign: 'middle',
+      wrap: true
+    });
+
+    // Lecture number
+    slide.addText(`المحاضرة ${lec.n}`, {
+      x: 0.5, y: H * 0.60, w: W - 1, h: 0.5,
+      fontSize: 20,
+      color: GOLD,
+      fontFace: 'Arial',
+      align: 'center',
+      rtlMode: true
+    });
+
+    // Duration bottom right
+    slide.addText(`${lec.duration} دقيقة`, {
+      x: W - 2.5, y: H - 0.8, w: 2.2, h: 0.4,
+      fontSize: 14,
+      color: GRAY,
+      fontFace: 'Arial',
+      align: 'left',
+      rtlMode: true
+    });
+
+    if (script) slide.addNotes(script);
+  }
+
+  // ---- 2. CONTENT SLIDES ----
+  lec.slides.forEach(sl => {
+    const slide = pptx.addSlide();
+    slide.background = { color: NAVY };
+
+    // Gold left border bar
+    slide.addShape(pptx.ShapeType.rect, {
+      x: 0, y: 0, w: 0.08, h: H,
+      fill: { color: GOLD },
+      line: { color: GOLD }
+    });
+
+    // Title area (top 20%)
+    slide.addText(sl.title, {
+      x: 0.3, y: 0.2, w: W - 0.5, h: H * 0.20,
+      fontSize: 24,
+      bold: true,
+      color: WHITE,
+      fontFace: 'Arial',
+      align: 'right',
+      rtlMode: true,
+      valign: 'middle',
+      wrap: true
+    });
+
+    // Thin gold separator line under title
+    slide.addShape(pptx.ShapeType.rect, {
+      x: 0.3, y: H * 0.22, w: W - 0.5, h: 0.03,
+      fill: { color: GOLD },
+      line: { color: GOLD }
+    });
+
+    // Bullets
+    const bulletStartY = H * 0.26;
+    const bulletH = 0.45;
+    const bulletSpacing = 0.3;
+
+    sl.bullets.forEach((bullet, idx) => {
+      const y = bulletStartY + idx * (bulletH + bulletSpacing);
+      if (y + bulletH > H - 0.2) return; // overflow guard
+
+      // Gold circle bullet marker
+      slide.addShape(pptx.ShapeType.ellipse, {
+        x: W - 0.55, y: y + bulletH / 2 - 0.07, w: 0.14, h: 0.14,
+        fill: { color: GOLD },
+        line: { color: GOLD }
+      });
+
+      // Bullet text
+      slide.addText(bullet, {
+        x: 0.5, y, w: W - 0.9, h: bulletH,
+        fontSize: 18,
+        color: WHITE,
+        fontFace: 'Arial',
+        align: 'right',
+        rtlMode: true,
+        valign: 'middle',
+        wrap: true
+      });
+    });
+
+    if (script) slide.addNotes(script);
+  });
+
+  // ---- 3. EXERCISE SLIDE ----
+  {
+    const slide = pptx.addSlide();
+    slide.background = { color: EXERCISE_BG };
+
+    // Top gold banner
+    slide.addShape(pptx.ShapeType.rect, {
+      x: 0, y: 0, w: W, h: 1.2,
+      fill: { color: GOLD },
+      line: { color: GOLD }
+    });
+
+    // Banner text
+    slide.addText('التمرين العملي', {
+      x: 0, y: 0, w: W, h: 1.2,
+      fontSize: 22,
+      bold: true,
+      color: NAVY,
+      fontFace: 'Arial',
+      align: 'center',
+      rtlMode: true,
+      valign: 'middle'
+    });
+
+    const ex = lec.exerciseSlide;
+    const exTitle = ex ? ex.title : 'التمرين العملي';
+    const exBullets = ex && ex.bullets.length > 0 ? ex.bullets : ['راجع ملاحظات المحاضرة'];
+
+    // Exercise title
+    slide.addText(exTitle, {
+      x: 0.5, y: 1.4, w: W - 1, h: 0.5,
+      fontSize: 18,
+      bold: true,
+      color: GOLD,
+      fontFace: 'Arial',
+      align: 'right',
+      rtlMode: true
+    });
+
+    // Exercise bullets
+    exBullets.forEach((b, idx) => {
+      slide.addText(b, {
+        x: 0.5, y: 2.0 + idx * 0.7, w: W - 1, h: 0.6,
+        fontSize: 17,
+        color: WHITE,
+        fontFace: 'Arial',
+        align: 'right',
+        rtlMode: true,
+        valign: 'top',
+        wrap: true
+      });
+    });
+
+    if (script) slide.addNotes(script);
+  }
+
+  // ---- 4. SUMMARY SLIDE ----
+  {
+    const slide = pptx.addSlide();
+    slide.background = { color: NAVY };
+
+    // Gold accent line at top
+    slide.addShape(pptx.ShapeType.rect, {
+      x: 0, y: 0, w: W, h: 0.08,
+      fill: { color: GOLD },
+      line: { color: GOLD }
+    });
+
+    // Summary title
+    slide.addText('ما تعلمناه اليوم', {
+      x: 0.5, y: 0.3, w: W - 1, h: 0.7,
+      fontSize: 26,
+      bold: true,
+      color: GOLD,
+      fontFace: 'Arial',
+      align: 'center',
+      rtlMode: true
+    });
+
+    // Auto-extract 3 key points from script
+    const keyPoints = extractKeyPoints(script, 3);
+    keyPoints.forEach((point, idx) => {
+      // Gold bullet circle
+      slide.addShape(pptx.ShapeType.ellipse, {
+        x: W - 0.55, y: 1.3 + idx * 1.5 + 0.15, w: 0.14, h: 0.14,
+        fill: { color: GOLD },
+        line: { color: GOLD }
+      });
+      slide.addText(point, {
+        x: 0.5, y: 1.3 + idx * 1.5, w: W - 0.9, h: 1.2,
+        fontSize: 16,
+        color: WHITE,
+        fontFace: 'Arial',
+        align: 'right',
+        rtlMode: true,
+        valign: 'middle',
+        wrap: true
+      });
+    });
+
+    if (script) slide.addNotes(script);
+  }
+
+  // Write to blob
+  return await pptx.write({ outputType: 'blob' });
+}
+
+function extractKeyPoints(script, count) {
+  if (!script) return Array(count).fill('مراجعة محتوى المحاضرة');
+  const paragraphs = script.split(/\n{2,}/).map(p => p.trim()).filter(p => p.length > 20);
+  const points = [];
+  for (let i = 0; i < paragraphs.length && points.length < count; i++) {
+    const firstSentence = paragraphs[i].split(/[.،؟!]/)[0].trim();
+    if (firstSentence.length > 10) {
+      points.push(truncateTitle(firstSentence));
+    }
+  }
+  while (points.length < count) points.push('مراجعة محتوى المحاضرة');
+  return points;
+}
+
+// ============================================================
+// THUMBNAIL GENERATOR
+// ============================================================
+async function generateThumbnail(udemy, totalLectures) {
+  const canvas = document.getElementById('thumbCanvas');
+  const ctx = canvas.getContext('2d');
+  const W = 750, H = 422;
+
+  const title = udemy['العنوان_المحسّن'] || 'الكورس';
+  const titleLen = title.length;
+
+  const schemes = [
+    { bg: '#0F1B2D', accent: '#C9A84C' },
+    { bg: '#1A0A2E', accent: '#9B59B6' },
+    { bg: '#0A2E1A', accent: '#27AE60' },
+    { bg: '#2E0A0A', accent: '#E74C3C' },
+    { bg: '#1A1A2E', accent: '#3498DB' },
+    { bg: '#2E2A0A', accent: '#F39C12' }
+  ];
+  const schemeIdx = (totalLectures + titleLen) % 6;
+  const scheme = schemes[schemeIdx];
+  const shapeIdx = titleLen % 6;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // 1. Background
+  ctx.fillStyle = scheme.bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // 2. Decorative shape
+  ctx.fillStyle = scheme.accent;
+  ctx.globalAlpha = getShapeOpacity(shapeIdx);
+  drawDecorativeShape(ctx, shapeIdx, W, H, scheme.accent);
+  ctx.globalAlpha = 1.0;
+
+  // 3. Accent line
+  ctx.fillStyle = scheme.accent;
+  ctx.globalAlpha = 1.0;
+  ctx.fillRect(40, 50, 80, 4);
+
+  // 4. Course title
+  ctx.save();
+  ctx.direction = 'rtl';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#FFFFFF';
+  ctx.shadowColor = 'rgba(0,0,0,0.5)';
+  ctx.shadowBlur = 8;
+  ctx.shadowOffsetX = 2;
+  ctx.shadowOffsetY = 2;
+
+  let fontSize = 36;
+  if (titleLen > 40) fontSize = 24;
+  else if (titleLen > 25) fontSize = 30;
+
+  ctx.font = `bold ${fontSize}px Arial`;
+  const maxChars = 35;
+  const lines = splitArabicText(title, maxChars);
+  const lineH = fontSize * 1.4;
+  const totalTextH = lines.length * lineH;
+  const topArea = H * 0.70;
+  let startY = (topArea - totalTextH) / 2 + fontSize;
+  lines.forEach(line => {
+    ctx.fillText(line, W / 2, startY);
+    startY += lineH;
+  });
+  ctx.restore();
+
+  // 5. Bottom bar
+  ctx.globalAlpha = 0.9;
+  ctx.fillStyle = scheme.accent;
+  ctx.fillRect(0, H - 50, W, 50);
+  ctx.globalAlpha = 1.0;
+
+  // 6. Bottom bar text
+  ctx.save();
+  ctx.font = '16px Arial';
+  ctx.fillStyle = scheme.bg;
+
+  // Right side: instructor label
+  ctx.direction = 'rtl';
+  ctx.textAlign = 'right';
+  ctx.fillText('Udemy • منصة التعلم', W - 20, H - 20);
+
+  // Left side: keyword
+  ctx.direction = 'ltr';
+  ctx.textAlign = 'left';
+  const kw = udemy.keywordsArr && udemy.keywordsArr[0] ? udemy.keywordsArr[0] : 'تطوير المهارات';
+  ctx.fillText(kw, 20, H - 20);
+  ctx.restore();
+
+  // Export as JPG blob
+  return await new Promise(resolve => {
+    canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.85);
+  });
+}
+
+function getShapeOpacity(idx) {
+  return [0.08, 0.06, 0.12, 0.10, 0.15, 0.10][idx] || 0.08;
+}
+
+function drawDecorativeShape(ctx, idx, W, H, color) {
+  ctx.fillStyle = color;
+  ctx.strokeStyle = color;
+
+  switch (idx) {
+    case 0: // Large circle bottom-right
+      ctx.beginPath();
+      ctx.arc(W - 50, H + 50, 200, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    case 1: // Three diagonal lines
+      ctx.lineWidth = 40;
+      ctx.globalAlpha = 0.06;
+      for (let i = 0; i < 3; i++) {
+        ctx.beginPath();
+        ctx.moveTo(-100 + i * 120, -50);
+        ctx.lineTo(W - 100 + i * 120, H + 50);
+        ctx.stroke();
+      }
+      break;
+    case 2: // Triangle bottom-right
+      ctx.beginPath();
+      ctx.moveTo(750, 422);
+      ctx.lineTo(750, 200);
+      ctx.lineTo(550, 422);
+      ctx.closePath();
+      ctx.fill();
+      break;
+    case 3: // Vertical rectangle right
+      ctx.fillRect(600, 0, 150, 422);
+      break;
+    case 4: // Grid of dots
+      for (let row = 0; row < 3; row++) {
+        for (let col = 0; col < 4; col++) {
+          ctx.beginPath();
+          ctx.arc(400 + col * 70 + 40, 80 + row * 100, 6, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      break;
+    case 5: // Wave curve at bottom
+      ctx.lineWidth = 30;
+      ctx.globalAlpha = 0.10;
+      ctx.beginPath();
+      ctx.moveTo(0, H);
+      ctx.bezierCurveTo(200, H - 80, 550, H + 40, W, H - 50);
+      ctx.stroke();
+      break;
+  }
+}
+
+function splitArabicText(text, maxChars) {
+  const words = text.split(' ');
+  const lines = [];
+  let current = '';
+  words.forEach(word => {
+    if ((current + ' ' + word).trim().length > maxChars) {
+      if (current) lines.push(current.trim());
+      current = word;
+    } else {
+      current = current ? current + ' ' + word : word;
+    }
+  });
+  if (current) lines.push(current.trim());
+  return lines;
+}
+
+// ============================================================
+// DOWNLOAD SECTION RENDER
+// ============================================================
+function renderDownloadSection(thumbBlob, thumbName) {
+  // Zip button
+  const zipBtn = document.getElementById('zipDownloadBtn');
+  zipBtn.onclick = () => downloadBlob(zipBlob, 'الكورس_كامل.zip');
+
+  // Individual list
+  const list = document.getElementById('individualList');
+  list.innerHTML = '<h4 style="margin:16px 0 10px;color:var(--gray);font-size:0.9rem;">الملفات الفردية</h4>';
+  individualBlobs.forEach(({ name, blob, lec }) => {
+    const row = document.createElement('div');
+    row.className = 'dlRow';
+    row.innerHTML = `
+      <div class="dlInfo">
+        <div class="dlTitle">${escHtml(lec.title)}</div>
+        <div class="dlMeta">المحاضرة ${lec.n} • ${lec.duration} دقيقة • الجزء ${lec.part}</div>
+      </div>
+      <button class="btnSecondary">⬇️ تحميل</button>`;
+    row.querySelector('button').onclick = () => downloadBlob(blob, name);
+    list.appendChild(row);
+  });
+
+  show('downloadSection');
+
+  // Thumbnail preview
+  if (thumbBlob) {
+    const url = URL.createObjectURL(thumbBlob);
+    document.getElementById('thumbnailPreview').src = url;
+    show('thumbnailSection');
+  }
+
+  show('resetBtn');
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function downloadBlob(blob, name) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
+function setProgress(pct, label) {
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressLabel').textContent = label;
+}
+
+function showError(msg) {
+  const el = document.getElementById('errorBanner');
+  el.textContent = '❌ ' + msg;
+  el.classList.add('show');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function hideError() {
+  document.getElementById('errorBanner').classList.remove('show');
+}
+
+function show(id) { document.getElementById(id).style.display = 'block'; }
+function hide(id) { document.getElementById(id).style.display = 'none'; }
+
+function escHtml(s) {
+  return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function yieldToUI() {
+  return new Promise(resolve => setTimeout(resolve, 10));
+}
+
+function resetAll() {
+  parsedData = null;
+  zipBlob = null;
+  individualBlobs = [];
+  hide('previewPanel');
+  hide('actionArea');
+  hide('progressArea');
+  hide('downloadSection');
+  hide('thumbnailSection');
+  hide('resetBtn');
+  document.getElementById('warnings').style.display = 'none';
+  document.getElementById('lectureGrid').innerHTML = '';
+  document.getElementById('generateBtn').disabled = false;
+  uploadZone.style.display = 'block';
+  fileInput.value = '';
+  hideError();
+}
+
+// ============================================================
+// PWA SERVICE WORKER
+// ============================================================
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
