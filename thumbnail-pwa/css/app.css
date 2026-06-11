@@ -1,0 +1,55 @@
+/* Additional responsive and animation styles */
+
+@media (max-width: 600px) {
+  header {
+    padding: 30px 15px;
+  }
+
+  h1 {
+    font-size: 1.6em;
+  }
+
+  .subtitle {
+    font-size: 0.95em;
+  }
+
+  .controls {
+    padding: 20px;
+  }
+
+  .btn {
+    padding: 10px 20px;
+    font-size: 15px;
+  }
+
+  footer {
+    font-size: 12px;
+  }
+}
+
+/* Canvas quality enhancement */
+#preview-canvas {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+}
+
+/* Button active states */
+.btn:active {
+  transform: scale(0.98);
+}
+
+/* Selection highlight */
+select option:checked {
+  background: linear-gradient(135deg, #D4AF37 0%, #F5A623 100%);
+  color: #0A1628;
+}
+
+/* Smooth fade for canvas opacity changes */
+#preview-canvas {
+  transition: opacity 0.2s ease;
+}
+
+/* Hover glow effect on canvas wrapper */
+.canvas-wrapper:hover {
+  box-shadow: 0 0 30px rgba(212, 175, 55, 0.1);
+}

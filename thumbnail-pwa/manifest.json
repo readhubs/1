@@ -1,0 +1,21 @@
+{
+  "name": "Udemy Thumbnail Generator",
+  "short_name": "ThumbnailGen",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0A1628",
+  "theme_color": "#D4AF37",
+  "orientation": "landscape",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect fill='%230A1628' width='192' height='192'/%3E%3Crect x='20' y='20' width='152' height='152' rx='12' fill='%23D4AF37'/%3E%3Crect x='36' y='68' width='120' height='80' rx='4' fill='%230A1628'/%3E%3Cpolygon points='96,88 76,108 116,108' fill='%23D4AF37'/%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect fill='%230A1628' width='512' height='512'/%3E%3Crect x='40' y='40' width='432' height='432' rx='32' fill='%23D4AF37'/%3E%3Crect x='80' y='160' width='352' height='240' rx='12' fill='%230A1628'/%3E%3Cpolygon points='256,220 180,300 332,300' fill='%23D4AF37'/%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}
